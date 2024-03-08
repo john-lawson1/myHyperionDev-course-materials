@@ -8,6 +8,7 @@ This program is a Task Manager, with the following functionality:
     at - Add a task
     va - View all tasks
     vm - View my task
+    gr - Generate reports
     ds - Display statistics (admin user only)
     ex - Exit
 
@@ -75,15 +76,15 @@ def main():
     # Present the MAIN MENU to the user and convert user input to lower case
     while True:
         menu = input('''\nMAIN MENU
-    Select one of the following Options below:
-    ru - Register a user
-    at - Add a task
-    va - View all tasks
-    vm - View my tasks
-    gr - Generate reports
-    ds - Display statistics (admin user only)
-    ex - Exit
-    : ''').lower()
+Select one of the following Options below:
+ru - Register a user
+at - Add a task
+va - View all tasks
+vm - View my tasks
+gr - Generate reports
+ds - Display statistics (admin user only)
+ex - Exit
+: ''').lower()
         # Run register user function
         if menu == 'ru':
             reg_user(username_password)
@@ -225,10 +226,10 @@ def generate_reports(username_password):
             else:
                 count_incomplete += 1
         
-    if count_incomplete == 0:
+    if len(task_dict) == 0:
         per_incomplete = 0
     else: per_incomplete = 100 * count_incomplete / len(task_dict)
-    if count_overdue == 0:
+    if len(task_dict) == 0:
         per_overdue  = 0
     else: per_overdue = 100 * count_overdue / len(task_dict)
     print(f"=======================TASK OVERVIEW=======================")
@@ -287,6 +288,10 @@ def generate_reports(username_password):
             count_user_tasks_complete = 0
             count_user_tasks_incomplete = 0
             count_user_tasks_overdue = 0
+            per_user_tasks = 0
+            per_user_tasks_complete = 0
+            per_user_tasks_incomplete = 0
+            per_user_overdue = 0
 
             for t in task_dict:
                 if t['username'] ==  k and t['completed'] == True:
@@ -304,21 +309,13 @@ def generate_reports(username_password):
                     count_user_tasks += 1
                     count_user_tasks_incomplete += 1
             
-                if count_user_tasks == 0:
-                    per_user_tasks = 0
-                else: per_user_tasks = 100 * count_user_tasks / len(task_dict)
+                if len(task_dict) != 0:
+                    per_user_tasks = 100 * count_user_tasks / len(task_dict)
             
-                if count_user_tasks_complete == 0:
-                    per_user_tasks_complete = 0
-                else: per_user_tasks_complete = 100 * count_user_tasks_complete / count_user_tasks
-            
-                if count_user_tasks_incomplete == 0:
-                    per_user_tasks_incomplete = 0
-                else: per_user_tasks_incomplete = 100 * count_user_tasks_incomplete / count_user_tasks
-                
-                if count_user_tasks_overdue == 0:
-                    per_user_overdue = 0
-                else: per_user_overdue = 100 * count_user_tasks_overdue / count_user_tasks
+                if count_user_tasks != 0:
+                    per_user_tasks_complete = 100 * count_user_tasks_complete / count_user_tasks
+                    per_user_tasks_incomplete = 100 * count_user_tasks_incomplete / count_user_tasks
+                    per_user_overdue = 100 * count_user_tasks_overdue / count_user_tasks
 
             print(f"\nUser: {k}")
             print(f"Total number of tasks:\t\t{count_user_tasks}\t {per_user_tasks:.2f}% of total tasks")
