@@ -97,10 +97,10 @@ ex - Exit
         # Run view my tasks function
         elif menu == 'vm':
             view_mine(curr_user)  
-        # Only allow admin user to display the number of users and tasks
+        # Run generate reports function
         elif menu == 'gr':
             generate_reports()
-        # Run generate reports function
+        # Only allow admin user to display the number of users and tasks
         elif menu == 'ds' and curr_user == 'admin':
             display_stats()
         # Exits the program
@@ -342,103 +342,89 @@ def generate_reports():
             - Total number & percentage of incomplete tasks assigned to that user
             - Total number & percentage of incomplete & overdue tasks assigned to that user
     '''
-    if not os.path.exists("task_overview.txt"):
-        with open("task_overview.txt", "w") as taskoverview_file:
+    with open("task_overview.txt", "w") as taskoverview_file:
+        task_dict = read_tasks()
+        count_complete = 0
+        count_incomplete = 0
+        count_overdue = 0
+        per_incomplete = 0
+        per_overdue  = 0
+        for t in task_dict:
+            if t['completed'] == True:
+                count_complete += 1
+            else:
+                if t['due_date'] < datetime.today():
+                    count_overdue += 1
+                    count_incomplete += 1
+                else:
+                    count_incomplete += 1
             
-            task_dict = read_tasks()
-            count_complete = 0
-            count_incomplete = 0
-            count_overdue = 0
-            per_incomplete = 0
-            per_overdue  = 0
+        if len(task_dict) != 0:
+            per_incomplete = 100 * count_incomplete / len(task_dict)
+            per_overdue = 100 * count_overdue / len(task_dict)
+        
+        task_str = f"=======================TASK OVERVIEW=======================\n"
+        task_str += f"Total number of tasks:      \t{len(task_dict)}\n"
+        task_str += f"Number of completed tasks:  \t{count_complete}\n"
+        task_str += f"Number of uncompleted tasks:\t{count_incomplete}\t {per_incomplete:.2f}% of total tasks\n"
+        task_str += f"Number of overdue tasks:    \t{count_overdue}\t {per_overdue:.2f}% of total tasks\n"
+
+        taskoverview_file.write(task_str)
+    print(f"\nTask Overview file successfully updated.")
+    
+    with open("user_overview.txt", "w") as useroverview_file:
+
+        # Read user.txt file to return dictionary of usernames and passwords
+        username_password = read_userfile()
+       
+        user_str = f"=======================USER OVERVIEW=======================\n"
+        user_str += f"Total number of users:\t{len(username_password)}\n"
+        user_str += f"Total number of tasks:\t{len(task_dict)}\n"
+        useroverview_file.write(user_str)
+
+        for k in username_password.keys():
+            count_user_tasks = 0
+            count_user_tasks_complete = 0
+            count_user_tasks_incomplete = 0
+            count_user_tasks_overdue = 0
+            per_user_tasks = 0
+            per_user_tasks_complete = 0
+            per_user_tasks_incomplete = 0
+            per_user_overdue = 0
 
             for t in task_dict:
-                if t['completed'] == True:
+                if t['username'] ==  k and t['completed'] == True:
                     count_complete += 1
-                else:
-                    if t['due_date'] < datetime.today():
-                        count_overdue += 1
-                        count_incomplete += 1
-                    else:
-                        count_incomplete += 1
+                    count_user_tasks += 1
+                    count_user_tasks_complete += 1
+                elif t['username'] ==  k and t['due_date'] < datetime.today():
+                    count_overdue += 1
+                    count_incomplete += 1
+                    count_user_tasks += 1
+                    count_user_tasks_overdue += 1
+                    count_user_tasks_incomplete += 1
+                elif t['username'] ==  k:
+                    count_incomplete += 1
+                    count_user_tasks += 1
+                    count_user_tasks_incomplete += 1
+            
+                if len(task_dict) != 0:
+                    per_user_tasks = 100 * count_user_tasks / len(task_dict)
+            
+                if count_user_tasks != 0:
+                    per_user_tasks_complete = 100 * count_user_tasks_complete / count_user_tasks
+                    per_user_tasks_incomplete = 100 * count_user_tasks_incomplete / count_user_tasks
+                    per_user_overdue = 100 * count_user_tasks_overdue / count_user_tasks
+
+            user_str = f"\nUser: {k}\n"
+            user_str += f"Total number of tasks:     \t{count_user_tasks}\t {per_user_tasks:.2f}% of total tasks\n"
+            user_str += f"Number of complete tasks:  \t{count_user_tasks_complete}\t {per_user_tasks_complete:.2f}% of total tasks\n"
+            user_str += f"Number of incomplete tasks:\t{count_user_tasks_incomplete}\t {per_user_tasks_incomplete:.2f}% of total tasks\n"
+            user_str += f"Number of overdue tasks:   \t{count_user_tasks_overdue}\t {per_user_overdue:.2f}% of total tasks\n"
                 
-            if len(task_dict) != 0:
-                per_incomplete = 100 * count_incomplete / len(task_dict)
-                per_overdue = 100 * count_overdue / len(task_dict)
-            
-            task_str = f"=======================TASK OVERVIEW=======================\n"
-            task_str += f"Total number of tasks:\t\t\t{len(task_dict)}\n"
-            task_str += f"Number of completed tasks:\t\t{count_complete}\n"
-            task_str += f"Number of uncompleted tasks:\t{count_incomplete}\t {per_incomplete:.2f}% of total tasks\n"
-            task_str += f"Number of overdue tasks:\t\t{count_overdue}\t {per_overdue:.2f}% of total tasks\n"
-
-            taskoverview_file.write(task_str)
-        print(f"\nTask Overview file successfully updated.\n")
-    
-    if not os.path.exists("user_overview.txt"):
-        with open("user_overview.txt", "w") as useroverview_file:
-
-            # Read user.txt file to return dictionary of usernames and passwords
-            username_password = read_userfile()
-    
-            print(f"=======================USER OVERVIEW=======================")
-            print(f"Total number of users:\t\t{len(username_password)}")
-            print(f"Total number of tasks:\t\t{len(task_dict)}")
-            
-            user_str = f"=======================USER OVERVIEW=======================\n"
-            user_str += f"Total number of users:\t\t{len(username_password)}\n"
-            user_str += f"Total number of tasks:\t\t{len(task_dict)}\n"
             useroverview_file.write(user_str)
-
-            for k in username_password.keys():
-                count_user_tasks = 0
-                count_user_tasks_complete = 0
-                count_user_tasks_incomplete = 0
-                count_user_tasks_overdue = 0
-                per_user_tasks = 0
-                per_user_tasks_complete = 0
-                per_user_tasks_incomplete = 0
-                per_user_overdue = 0
-
-                for t in task_dict:
-                    if t['username'] ==  k and t['completed'] == True:
-                        count_complete += 1
-                        count_user_tasks += 1
-                        count_user_tasks_complete += 1
-                    elif t['username'] ==  k and t['due_date'] < datetime.today():
-                        count_overdue += 1
-                        count_incomplete += 1
-                        count_user_tasks += 1
-                        count_user_tasks_overdue += 1
-                        count_user_tasks_incomplete += 1
-                    elif t['username'] ==  k:
-                        count_incomplete += 1
-                        count_user_tasks += 1
-                        count_user_tasks_incomplete += 1
-                
-                    if len(task_dict) != 0:
-                        per_user_tasks = 100 * count_user_tasks / len(task_dict)
-                
-                    if count_user_tasks != 0:
-                        per_user_tasks_complete = 100 * count_user_tasks_complete / count_user_tasks
-                        per_user_tasks_incomplete = 100 * count_user_tasks_incomplete / count_user_tasks
-                        per_user_overdue = 100 * count_user_tasks_overdue / count_user_tasks
-
-                print(f"\nUser: {k}")
-                print(f"Total number of tasks:\t\t{count_user_tasks}\t {per_user_tasks:.2f}% of total tasks")
-                print(f"Number of completed tasks:\t{count_user_tasks_complete}\t {per_user_tasks_complete:.2f}% of total tasks")
-                print(f"Number of incomplete tasks:\t{count_user_tasks_incomplete}\t {per_user_tasks_incomplete:.2f}% of total tasks")
-                print(f"Number of overdue tasks:\t{count_user_tasks_overdue}\t {per_user_overdue:.2f}% of total tasks")
-                
-                user_str = f"\nUser: {k}\n"
-                user_str += f"Total number of tasks:\t\t{count_user_tasks}\t {per_user_tasks:.2f}% of total tasks\n"
-                user_str += f"Number of complete tasks:\t{count_user_tasks_complete}\t {per_user_tasks_complete:.2f}% of total tasks\n"
-                user_str += f"Number of incomplete tasks:\t{count_user_tasks_incomplete}\t {per_user_tasks_incomplete:.2f}% of total tasks\n"
-                user_str += f"Number of overdue tasks:\t{count_user_tasks_overdue}\t {per_user_overdue:.2f}% of total tasks\n"
-                    
-                useroverview_file.write(user_str)
-                print(f"\nUser Overview file successfully updated for {k}.")
-        print(f"\nUser Overview file update completed successfully.")
+            print(f"User Overview file successfully updated for {k}.")
+    print(f"User Overview file update completed successfully.\n")
 
 def display_stats():
     '''Modify the menu option that allows the admin to display statistics so that
@@ -447,14 +433,13 @@ def display_stats():
         because the user hasn’t selected to generate them yet), first call the code
         to generate the text files.
     '''
-    # Read user.txt file to return dictionary of usernames and passwords
-    username_password = read_userfile()
-    num_users = len(username_password.keys())
-    num_tasks = len(read_tasks())
-    print("-----------------------------------")
-    print(f"Number of users: \t\t {num_users}")
-    print(f"Number of tasks: \t\t {num_tasks}")
-    print("-----------------------------------")    
+    generate_reports()
+    # Read task_overview.txt file to print task overview report
+    with open("task_overview.txt", "r") as taskoverview_file:
+        print(taskoverview_file.read())
+    # Read user_overview.txt file to print user overview report
+    with open("user_overview.txt", "r") as useroverview_file:
+        print(useroverview_file.read()) 
 
 def read_userfile():
     '''Read user.txt file and create a dictionary of usernames and passwords.'''
