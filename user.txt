@@ -1,2 +1,1 @@
 admin;password
-John;jjl
