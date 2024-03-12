@@ -1,8 +1,7 @@
 """
 =================================TASK MANAGER=================================
-This program is a Task Manager, with the following functionality:
+This program is a Task Manager, which has the following functionality:
 - The user is required to log in with valid username and password
-- A new task file will be created if one does not already exist
 - The user is presented with a MAIN MENU with the following options:
     ru - Register a user
     at - Add a task
@@ -36,13 +35,13 @@ DATETIME_STRING_FORMAT = "%Y-%m-%d"
 
 def main():
     '''The main Task Manager program'''
-    # User log in.
+    # User log in & creation of curr_user variable for user specific functions
     curr_user = login()
     # Create tasks.txt file if it does not exist
     if not os.path.exists("tasks.txt"):
         with open("tasks.txt", "w") as default_file:
             pass
-    # Present user with the MAIN MENU
+    # Present user with the MAIN MENU to select desired task manager action
     main_menu(curr_user)
 
 def login():
@@ -53,7 +52,7 @@ def login():
             user_file.write("admin;password")
     # Read user.txt file to return dictionary of usernames and passwords
     username_password = read_userfile()        
-    # User log in with a valid username and password
+    # User can only log in with a valid username and password
     logged_in = False
     while not logged_in:
         print("LOGIN")
@@ -73,8 +72,9 @@ def login():
     return curr_user
 
 def main_menu(curr_user):
-    '''Present the MAIN MENU to the user and convert user input to lower case'''
+    '''Present the MAIN MENU to the user'''
     while True:
+        # User input converted to lower case for handling incorrect capitalisation
         menu = input('''\nMAIN MENU
 Select one of the following Options below:
 ru - Register a user
@@ -100,10 +100,10 @@ ex - Exit
         # Run generate reports function
         elif menu == 'gr':
             generate_reports()
-        # Only allow admin user to display the number of users and tasks
+        # Only allow admin user to run the display statistics function
         elif menu == 'ds' and curr_user == 'admin':
             display_stats()
-        # Exits the program
+        # Exit the program
         elif menu == 'ex':
             print('\nGoodbye!!!')
             exit()
@@ -128,7 +128,7 @@ def reg_user():
     confirm_password = input("Confirm Password: ")
     # Check if the new password and confirmed password are the same
     if new_password == confirm_password:
-        # If the pasword match, add the user and password to the user.txt file
+        # If the paswords match, add the user and password to the user.txt file
         print("New user added")
         username_password[new_username] = new_password  
         with open("user.txt", "w") as out_file:
@@ -136,7 +136,7 @@ def reg_user():
             for k in username_password:
                 user_data.append(f"{k};{username_password[k]}")
             out_file.write("\n".join(user_data))
-    # Present a message if passwords do not match
+    # Notify user that the passwords do not match before returning to the MAIN MENU
     else:
         print("Passwords do no match")
 
@@ -168,7 +168,7 @@ def add_task():
             break
         except ValueError:
             print("Invalid datetime format. Please use the format specified")
-    # Get the current date
+    # Get the current date to set as the task assigned date
     curr_date = date.today()
     # Add the task data to the file task.txt and default task completed to 'No'
     updated_tasks = read_tasks()
@@ -200,29 +200,40 @@ def view_mine(curr_user):
     '''   
     # Displays only the current user's tasks from the task list
     my_tasks = []
-    for t in read_tasks():
-        if t['username'] == curr_user:
-            display_task(t)
-            my_tasks.append(t['index'])
+    my_task_ids = []
+    tasks = read_tasks()
+    for task in tasks:
+        if task['username'] == curr_user:
+            display_task(task)
+            my_tasks.append(task)
+            my_task_ids.append(task['index'])
     # Give user a choice to edit a task or return to the main menu
     task_choice = 0
     while task_choice != -1:
         try:
             # Error handling for invalid integer task# entry
-            if task_choice not in my_tasks:
-                task_choice = int(input("Enter a Task# to edit or -1 to return to the main menu: "))
-            # Present user with the EDIT MENU where valid task entered
-            else:
-                edit_menu(task_choice)
-                break
+            task_choice = int(input("Enter a valid Task# to edit or -1 to return to the main menu: "))
         # Error handling for non-integer entry 
         except ValueError:
-            print("Invalid Task# selection.") 
+            print("Invalid Task# selection.")
+        # Prevent user from editing another user's task
+        else:
+            if task_choice != -1 and task_choice not in my_task_ids:
+                print(f"\nTask {task_choice} is not assigned to you.")
+            else:
+                for task in my_tasks:
+                    # Prevent user from editing a completed task
+                    if task['index'] == task_choice and task['completed']:
+                        print(f"\nTask {task_choice} is already marked as complete and cannot be edited.")
+                    # Present user with the EDIT MENU where valid task entered
+                    elif task['index'] == task_choice and not task['completed']:
+                        edit_menu(task_choice, curr_user)
+                        break         
 
-def edit_menu(task_choice):
-    '''Present the EDIT MENU to the user and convert user input to lower case'''
-    # Present the EDIT MENU to the user and convert user input to lower case
+def edit_menu(task_choice, curr_user):
+    '''Present the EDIT MENU to the user'''
     while True:
+        # User input converted to lower case for handling incorrect capitalisation
         edit_choice =  input("""\nEDIT MENU
 Select one of the following Edit Options below:
 tc - Mark task as complete
@@ -232,13 +243,13 @@ ex - Exit to Main Menu
 : """).lower()
         # Run edit completed function
         if edit_choice == "tc":
-            edit_completed(task_choice)        
+            edit_completed(task_choice, curr_user)        
         # Run edit assigned user function
         elif edit_choice == "ua":
-            edit_assigneduser(task_choice)
+            edit_assigneduser(task_choice, curr_user)
         # Run edit due date function
         elif edit_choice == "dd":
-            edit_duedate(task_choice)
+            edit_duedate(task_choice, curr_user)
         # Exit to MAIN MENU
         elif edit_choice == "ex":
             print("\nReturning to MAIN MENU...")
@@ -247,38 +258,33 @@ ex - Exit to Main Menu
         else:
             print("You made an invalid choice, Please Try again")
 
-def edit_completed(task_choice):
+def edit_completed(task_choice, curr_user):
     '''Enable user to change the completion status of a task'''
-    # loop to update task completion status
+    # loop to update completion status of selected task in full task list
     updated_tasks = []
-    for t in read_tasks(): 
+    for task in read_tasks(): 
         # Find task selected for editing
-        if t['index'] == task_choice:
-            # Prevent user from editing a completed task
-            if t["completed"]:
-                print("\nTask is already marked as complete.")
-            else:
-                t["completed"] = True
-                print(f"\nTask marked as complete...")
-                display_task(t)
-        # Create updated task list
-        updated_tasks.append(t)
-    # Update the task file
+        if task['index'] == task_choice:
+            # Update task to 'complete'
+            task['completed'] = True
+            print(f"\nTask marked as complete...")
+            display_task(task)
+        # Append each task to the updated task list
+        updated_tasks.append(task)
+    # Update the task file with the updated task list
     write_tasks(updated_tasks)
+    # Return user to MAIN MENU as the user cannot edit a completed task
+    main_menu(curr_user)
 
-def edit_assigneduser(task_choice):
+def edit_assigneduser(task_choice, curr_user):
     '''Enable user to change the user assigned to a task'''
     # Read user.txt file to return dictionary of usernames and passwords
     username_password = read_userfile()
-    # Loop to update assigned user
+    # Loop to update assigned user of selected task in full task list
     updated_tasks = []
     for task in read_tasks():
         # Find task selected for editing
         if task['index'] == task_choice:
-            # Prevent user from editing a completed task
-            if task["completed"]:
-                print("A completed task cannot be edited.")
-                break
             # Show task to user before edit
             print(f"\nTask before assigned user update:")
             display_task(task)    
@@ -291,21 +297,20 @@ def edit_assigneduser(task_choice):
             # Show task to user after edit
             print(f"\nTask after assigned user update:")
             display_task(task)
+        # Append each task to the updated task list
         updated_tasks.append(task)
-    # Update the task file
+    # Update the task file with the updated task list
     write_tasks(updated_tasks)
+    # Return user to MAIN MENU so the user cannot edit another user's task
+    main_menu(curr_user)
 
-def edit_duedate(task_choice):
+def edit_duedate(task_choice, curr_user):
     '''Enable user to change the due date of a task'''
-    # Loop to update task due date
+    # Loop to update task due date of selected task in full task list
     updated_tasks = []
     for task in read_tasks():
         # Find task selected for editing
         if task['index'] == task_choice:
-            # Prevent user from editing a completed task
-            if task["completed"]:
-                print("A completed task cannot be edited.")
-                break  
             # Show task to user before edit
             print(f"\nTask before due date update:")
             display_task(task)
@@ -321,34 +326,26 @@ def edit_duedate(task_choice):
             # Show task to user after edit
             print(f"\nTask after due date update:")
             display_task(task)
+        # Append each task to the updated task list
         updated_tasks.append(task)
-    # Update the task file
+    # Update the task file with the updated task list
     write_tasks(updated_tasks)
+    # Return user to MAIN MENU as the user cannot edit a completed task
+    main_menu(curr_user)
 
 def generate_reports():
-    '''Generates a task and a user report and saves them to two text files.
-        1) task_overview.txt containing:
-        - Total number of tasks generated & tracked using the task_manager.py
-        - Total number of completed tasks
-        - Total number & percentage of incomplete tasks
-        - Total number & percentage of incomplete tasks that are overdue
-        
-        2) user_overview.txt containing:
-        - Total number of users registered with task_manager.py
-        - Total number of tasks generated & tracked using task_manager.py
-        - For each user:
-            - Total number & percentage of tasks assigned to that user
-            - Total number & percentage of completed tasks assigned to that user
-            - Total number & percentage of incomplete tasks assigned to that user
-            - Total number & percentage of incomplete & overdue tasks assigned to that user
-    '''
+    '''Generate a task report & a user report and saves them to two text files.'''
+    # Section to create the task_overview.txt file
     with open("task_overview.txt", "w") as taskoverview_file:
+        # Create a task list variable from the task list file
         task_dict = read_tasks()
+        # Initialises counts and percentages as zero
         count_complete = 0
         count_incomplete = 0
         count_overdue = 0
         per_incomplete = 0
         per_overdue  = 0
+        # loop to increment task count variables for specified conditions
         for t in task_dict:
             if t['completed'] == True:
                 count_complete += 1
@@ -358,31 +355,31 @@ def generate_reports():
                     count_incomplete += 1
                 else:
                     count_incomplete += 1
-            
+        # Calculate percentages with zero division error handling
         if len(task_dict) != 0:
             per_incomplete = 100 * count_incomplete / len(task_dict)
             per_overdue = 100 * count_overdue / len(task_dict)
-        
+        # Create string of task stats to be written to the task_overview.txt file in a readable format
         task_str = f"=======================TASK OVERVIEW=======================\n"
         task_str += f"Total number of tasks:      \t{len(task_dict)}\n"
         task_str += f"Number of completed tasks:  \t{count_complete}\n"
         task_str += f"Number of uncompleted tasks:\t{count_incomplete}\t {per_incomplete:.2f}% of total tasks\n"
         task_str += f"Number of overdue tasks:    \t{count_overdue}\t {per_overdue:.2f}% of total tasks\n"
-
         taskoverview_file.write(task_str)
+    # Notify user that the updates to the task_overview.txt file are complete
     print(f"\nTask Overview file successfully updated.")
-    
+    # Section to create the user_overview.txt file
     with open("user_overview.txt", "w") as useroverview_file:
-
         # Read user.txt file to return dictionary of usernames and passwords
         username_password = read_userfile()
-       
+        # Create and append header rows for user_overview.txt in a readable format
         user_str = f"=======================USER OVERVIEW=======================\n"
         user_str += f"Total number of users:\t{len(username_password)}\n"
         user_str += f"Total number of tasks:\t{len(task_dict)}\n"
         useroverview_file.write(user_str)
-
+        # loop to calculate stats for each user
         for k in username_password.keys():
+            # Initialises counts and percentages as zero
             count_user_tasks = 0
             count_user_tasks_complete = 0
             count_user_tasks_incomplete = 0
@@ -391,7 +388,7 @@ def generate_reports():
             per_user_tasks_complete = 0
             per_user_tasks_incomplete = 0
             per_user_overdue = 0
-
+            # loop to increment count variables for specified conditions
             for t in task_dict:
                 if t['username'] ==  k and t['completed'] == True:
                     count_complete += 1
@@ -407,32 +404,28 @@ def generate_reports():
                     count_incomplete += 1
                     count_user_tasks += 1
                     count_user_tasks_incomplete += 1
-            
+                # Calculate percentages with zero division error handling
                 if len(task_dict) != 0:
                     per_user_tasks = 100 * count_user_tasks / len(task_dict)
-            
                 if count_user_tasks != 0:
                     per_user_tasks_complete = 100 * count_user_tasks_complete / count_user_tasks
                     per_user_tasks_incomplete = 100 * count_user_tasks_incomplete / count_user_tasks
                     per_user_overdue = 100 * count_user_tasks_overdue / count_user_tasks
-
+            # Create string of stats for a user to be appended to the user_overview.txt file in a readable format
             user_str = f"\nUser: {k}\n"
             user_str += f"Total number of tasks:     \t{count_user_tasks}\t {per_user_tasks:.2f}% of total tasks\n"
-            user_str += f"Number of complete tasks:  \t{count_user_tasks_complete}\t {per_user_tasks_complete:.2f}% of total tasks\n"
-            user_str += f"Number of incomplete tasks:\t{count_user_tasks_incomplete}\t {per_user_tasks_incomplete:.2f}% of total tasks\n"
-            user_str += f"Number of overdue tasks:   \t{count_user_tasks_overdue}\t {per_user_overdue:.2f}% of total tasks\n"
-                
+            user_str += f"Number of complete tasks:  \t{count_user_tasks_complete}\t {per_user_tasks_complete:.2f}% of total user tasks\n"
+            user_str += f"Number of incomplete tasks:\t{count_user_tasks_incomplete}\t {per_user_tasks_incomplete:.2f}% of total user tasks\n"
+            user_str += f"Number of overdue tasks:   \t{count_user_tasks_overdue}\t {per_user_overdue:.2f}% of total user tasks\n"
             useroverview_file.write(user_str)
+            # Notify user that the stats of a user have been appended to the user_overview.txt file
             print(f"User Overview file successfully updated for {k}.")
+    # Notify user that the updates to the user_overview.txt file are complete
     print(f"User Overview file update completed successfully.\n")
 
 def display_stats():
-    '''Modify the menu option that allows the admin to display statistics so that
-        the reports generated are read from tasks.txt and user.txt and displayed
-        on the screen in a user-friendly manner. If these text files don’t exist
-        because the user hasn’t selected to generate them yet), first call the code
-        to generate the text files.
-    '''
+    '''Displays task and user statistics on screen (for admin user only)'''
+    # Create task and user overview report files in case they have not already been created 
     generate_reports()
     # Read task_overview.txt file to print task overview report
     with open("task_overview.txt", "r") as taskoverview_file:
@@ -443,8 +436,8 @@ def display_stats():
 
 def read_userfile():
     '''Read user.txt file and create a dictionary of usernames and passwords.'''
+    # Create a username_password dictionary from the user.txt file.
     with open("user.txt", "r") as user_file:
-        # Create a username_password dictionary from the user.txt file.
         user_data = user_file.read().split("\n")
         username_password = {}
         for user in user_data:
@@ -454,7 +447,7 @@ def read_userfile():
 
 def read_tasks():
     '''Creates an indexed task list from the task file'''
-    # Read in task data
+    # Read in task data from the task.txt file
     with open("tasks.txt", 'r') as task_file:
         task_data = task_file.read().split("\n")
         task_data = [t for t in task_data if t != ""]
@@ -475,9 +468,8 @@ def read_tasks():
     return task_list
 
 def display_task(task):
-    '''Prints the tasks to the console in the format of Output 2
-        presented in the task pdf (i.e. includes spacing and labelling)
-    '''
+    '''Prints the tasks to the console'''
+    # Create string of stats that can be printed to the console in a readable format
     disp_str = f"Task#: \t\t {task['index']}\n"
     disp_str += f"Task: \t\t {task['title']}\n"
     disp_str += f"Assigned to: \t {task['username']}\n"
