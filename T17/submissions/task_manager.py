@@ -105,7 +105,7 @@ ex - Exit
             display_stats()
         # Exit the program
         elif menu == 'ex':
-            print('\nGoodbye!!!')
+            print('\nThankyou for using Task Manager!')
             exit()
         # Error handling for invalid user input
         else:
