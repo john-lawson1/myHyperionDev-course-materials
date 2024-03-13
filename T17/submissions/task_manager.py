@@ -346,11 +346,11 @@ def generate_reports():
         per_incomplete = 0
         per_overdue  = 0
         # loop to increment task count variables for specified conditions
-        for t in task_dict:
-            if t['completed'] == True:
+        for task in task_dict:
+            if task['completed'] == True:
                 count_complete += 1
             else:
-                if t['due_date'] < datetime.today():
+                if task['due_date'] < datetime.today():
                     count_overdue += 1
                     count_incomplete += 1
                 else:
