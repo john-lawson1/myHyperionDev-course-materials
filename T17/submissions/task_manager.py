@@ -389,18 +389,18 @@ def generate_reports():
             per_user_tasks_incomplete = 0
             per_user_overdue = 0
             # loop to increment count variables for specified conditions
-            for t in task_dict:
-                if t['username'] ==  k and t['completed'] == True:
+            for task in task_dict:
+                if task['username'] ==  k and task['completed'] == True:
                     count_complete += 1
                     count_user_tasks += 1
                     count_user_tasks_complete += 1
-                elif t['username'] ==  k and t['due_date'] < datetime.today():
+                elif task['username'] ==  k and task['due_date'] < datetime.today():
                     count_overdue += 1
                     count_incomplete += 1
                     count_user_tasks += 1
                     count_user_tasks_overdue += 1
                     count_user_tasks_incomplete += 1
-                elif t['username'] ==  k:
+                elif task['username'] ==  k:
                     count_incomplete += 1
                     count_user_tasks += 1
                     count_user_tasks_incomplete += 1
